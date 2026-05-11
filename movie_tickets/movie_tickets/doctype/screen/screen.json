@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "creation": "2026-05-11 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "screen_name",
+  "theater",
+  "screen_type",
+  "seat_rows",
+  "seats_per_row",
+  "total_seats",
+  "base_price",
+  "is_active"
+ ],
+ "fields": [
+  {
+   "fieldname": "screen_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Screen Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "theater",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Theater",
+   "options": "Theater",
+   "reqd": 1
+  },
+  {
+   "default": "Standard",
+   "fieldname": "screen_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Screen Type",
+   "options": "Standard\nIMAX\n3D\n4DX"
+  },
+  {
+   "fieldname": "total_seats",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total Seats",
+   "reqd": 1
+  },
+  {
+   "fieldname": "seat_rows",
+   "fieldtype": "Int",
+   "label": "Seat Rows",
+   "reqd": 1
+  },
+  {
+   "fieldname": "seats_per_row",
+   "fieldtype": "Int",
+   "label": "Seats Per Row",
+   "reqd": 1
+  },
+  {
+   "fieldname": "base_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Base Price",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  }
+ ],
+ "links": [],
+ "modified": "2026-05-11 11:09:53.995267",
+ "modified_by": "Administrator",
+ "module": "Movie Tickets",
+ "name": "Screen",
+ "naming_rule": "By script",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
