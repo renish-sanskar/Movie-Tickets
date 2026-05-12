@@ -75,3 +75,20 @@ def make_slug(title):
 	title = title or ""
 	slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
 	return re.sub(r"-+", "-", slug)
+
+
+def update_movie_statuses():
+	"""Daily: recalculate movie_status for all movies based on today vs release_date/end_date."""
+	current_date = getdate(today())
+
+	frappe.db.sql("""
+		UPDATE `tabMovie`
+		SET movie_status = CASE
+			WHEN release_date IS NULL THEN 'Upcoming'
+			WHEN %s < release_date THEN 'Upcoming'
+			WHEN end_date IS NOT NULL AND %s > end_date THEN 'Ended'
+			ELSE 'Now Showing'
+		END
+	""", (current_date, current_date))
+
+	frappe.db.commit()

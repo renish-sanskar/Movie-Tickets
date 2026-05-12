@@ -1,8 +1,9 @@
+import json
 import re
 
 import frappe
 from frappe import _
-from frappe.utils import cint, escape_html, fmt_money, today
+from frappe.utils import add_days, cint, escape_html, fmt_money, getdate, today
 
 
 BOOKED_SEAT_STATUSES = ("Pending", "Confirmed")
@@ -275,3 +276,118 @@ def row_number_to_letter(row_number):
 		row_number //= 26
 
 	return letter
+
+
+# ─── Bulk Show Creator ────────────────────────────────────────────────────────
+
+CINEMA_MANAGER_ROLES = ("System Manager", "Cinema Manager")
+
+
+@frappe.whitelist()
+def bulk_create_shows(movie, screens, from_date, to_date, show_times, ticket_price=None):
+	"""Enqueue bulk creation of Show records.
+
+	Args:
+	    movie: Movie doctype name
+	    screens: JSON list of Screen names
+	    from_date: start date (inclusive)
+	    to_date: end date (inclusive)
+	    show_times: JSON list of time strings like ["09:00", "14:00", "18:30"]
+	    ticket_price: optional override; defaults to each screen's base_price
+	"""
+	roles = frappe.get_roles()
+	if not any(r in roles for r in CINEMA_MANAGER_ROLES):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	if isinstance(screens, str):
+		screens = json.loads(screens)
+	if isinstance(show_times, str):
+		show_times = json.loads(show_times)
+
+	from_date = getdate(from_date)
+	to_date = getdate(to_date)
+
+	if from_date > to_date:
+		frappe.throw(_("From Date cannot be after To Date"))
+	if from_date < getdate(today()):
+		frappe.throw(_("From Date cannot be in the past"))
+	if not screens:
+		frappe.throw(_("At least one screen is required"))
+	if not show_times:
+		frappe.throw(_("At least one show time is required"))
+
+	# validate movie exists and is not ended
+	movie_status = frappe.db.get_value("Movie", movie, "movie_status")
+	if not movie_status:
+		frappe.throw(_("Movie {0} not found").format(movie))
+	if movie_status == "Ended":
+		frappe.throw(_("Movie {0} has ended").format(movie))
+
+	frappe.enqueue(
+		_create_shows_in_bulk,
+		queue="default",
+		timeout=600,
+		movie=movie,
+		screens=screens,
+		from_date=str(from_date),
+		to_date=str(to_date),
+		show_times=show_times,
+		ticket_price=ticket_price,
+		user=frappe.session.user,
+	)
+
+	total = len(screens) * len(show_times) * ((to_date - from_date).days + 1)
+	frappe.msgprint(
+		_("Queued creation of up to {0} shows. You will be notified on completion.").format(total),
+		alert=True,
+		indicator="blue",
+	)
+
+
+def _create_shows_in_bulk(movie, screens, from_date, to_date, show_times, ticket_price=None, user=None):
+	"""Background job: create Show records for each screen × date × time combo."""
+	frappe.set_user(user or "Administrator")
+	from_date = getdate(from_date)
+	to_date = getdate(to_date)
+	created = 0
+	skipped = 0
+	errors = []
+
+	num_days = (to_date - from_date).days + 1
+	for screen in screens:
+		screen_price = ticket_price or frappe.db.get_value("Screen", screen, "base_price")
+		for day_offset in range(num_days):
+			show_date = add_days(from_date, day_offset)
+			for time_str in show_times:
+				try:
+					show = frappe.get_doc({
+						"doctype": "Show",
+						"movie": movie,
+						"screen": screen,
+						"show_date": show_date,
+						"start_time": time_str,
+						"ticket_price": screen_price,
+					})
+					show.insert()
+					created += 1
+				except frappe.ValidationError as e:
+					skipped += 1
+					errors.append(f"{screen} | {show_date} | {time_str}: {str(e)[:100]}")
+				except Exception as e:
+					skipped += 1
+					errors.append(f"{screen} | {show_date} | {time_str}: {str(e)[:100]}")
+
+		frappe.db.commit()
+
+	# notify the user
+	message = _("Bulk Show Creator finished: {0} created, {1} skipped.").format(created, skipped)
+	if errors:
+		message += "<br><br><b>Skipped details:</b><br>" + "<br>".join(errors[:20])
+		if len(errors) > 20:
+			message += f"<br>... and {len(errors) - 20} more"
+
+	frappe.publish_realtime(
+		"msgprint",
+		{"message": message, "indicator": "green" if not skipped else "orange"},
+		user=user,
+	)

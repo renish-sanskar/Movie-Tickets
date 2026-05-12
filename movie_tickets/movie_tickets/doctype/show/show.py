@@ -171,3 +171,40 @@ def get_time_window(start_time, end_time):
 
 def format_show_time(show_time):
 	return get_time(show_time).strftime("%H:%M:%S")
+
+
+def update_show_statuses():
+	"""Hourly: update show_status based on current date/time."""
+	now = now_datetime()
+	current_date = now.date()
+	current_time = now.time().strftime("%H:%M:%S")
+
+	# Past-date Scheduled/Now Playing shows → Completed
+	frappe.db.sql("""
+		UPDATE `tabShow`
+		SET show_status = 'Completed'
+		WHERE show_date < %s
+			AND show_status IN ('Scheduled', 'Now Playing')
+	""", (current_date,))
+
+	# Today's shows where end_time has passed → Completed
+	frappe.db.sql("""
+		UPDATE `tabShow`
+		SET show_status = 'Completed'
+		WHERE show_date = %s
+			AND end_time IS NOT NULL
+			AND end_time <= %s
+			AND show_status IN ('Scheduled', 'Now Playing')
+	""", (current_date, current_time))
+
+	# Today's shows where start_time passed but end_time not yet → Now Playing
+	frappe.db.sql("""
+		UPDATE `tabShow`
+		SET show_status = 'Now Playing'
+		WHERE show_date = %s
+			AND start_time <= %s
+			AND (end_time IS NULL OR end_time > %s)
+			AND show_status = 'Scheduled'
+	""", (current_date, current_time, current_time))
+
+	frappe.db.commit()

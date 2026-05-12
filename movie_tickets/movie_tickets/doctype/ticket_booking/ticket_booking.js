@@ -4,6 +4,7 @@ frappe.ui.form.on("Ticket Booking", {
 		add_select_seats_button(frm);
 		add_send_confirmation_button(frm);
 		calculate_booking_total(frm);
+		show_qr_code(frm);
 	},
 
 	async show(frm) {
@@ -385,4 +386,29 @@ function sort_seat_labels(left, right) {
 	}
 
 	return left_row.localeCompare(right_row);
+}
+
+function show_qr_code(frm) {
+	if (frm.doc.docstatus !== 1) return;
+
+	// Find QR attachment
+	const attachments = frm.attachments?.get_attachments() || [];
+	const qr_file = attachments.find((a) => a.file_name && a.file_name.includes("-qr"));
+
+	if (!qr_file) return;
+
+	const wrapper = frm.fields_dict.seats.$wrapper;
+
+	// Remove old QR display if any
+	wrapper.parent().find(".booking-qr-section").remove();
+
+	$(
+		`<div class="booking-qr-section" style="margin: 20px 0; text-align: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg);">
+			<div style="font-weight: 600; margin-bottom: 8px;">Booking QR Code</div>
+			<img src="${qr_file.file_url}" alt="QR Code" style="width: 200px; height: 200px;">
+			<div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-muted);">
+				Show this at the cinema entrance
+			</div>
+		</div>`
+	).insertAfter(wrapper);
 }

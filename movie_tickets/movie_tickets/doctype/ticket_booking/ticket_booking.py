@@ -1,9 +1,13 @@
+import io
+import json
 import re
+
+import qrcode
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, get_datetime, get_time, now_datetime
+from frappe.utils import flt, fmt_money, format_time, formatdate, get_datetime, get_time, now_datetime
 
 from movie_tickets.movie_tickets.doctype.booking_configuration.booking_configuration import (
 	get_booking_configuration,
@@ -293,5 +297,166 @@ def get_max_seats_per_booking():
 
 @frappe.whitelist()
 def send_booking_confirmation(booking):
-	frappe.get_doc("Ticket Booking", booking).check_permission("read")
-	return {"message": _("Booking confirmation sent")}
+	doc = frappe.get_doc("Ticket Booking", booking)
+	doc.check_permission("read")
+
+	if not doc.customer_email:
+		frappe.throw(_("Customer email is not set on this booking"))
+
+	if doc.docstatus != 1:
+		frappe.throw(_("Booking must be submitted before sending confirmation"))
+
+	send_booking_confirmation_email(doc, method=None)
+	return {"message": _("Booking confirmation sent to {0}").format(doc.customer_email)}
+
+
+def auto_expire_unpaid_bookings():
+	"""Find pending unpaid bookings older than booking_expiry_minutes and expire them."""
+	config = get_booking_configuration()
+
+	if not config.enable_auto_expiry:
+		return
+
+	expiry_minutes = config.booking_expiry_minutes or 15
+	cutoff = frappe.utils.add_to_date(now_datetime(), minutes=-expiry_minutes)
+
+	expired_bookings = frappe.get_all(
+		"Ticket Booking",
+		filters={
+			"booking_status": "Pending",
+			"payment_status": "Unpaid",
+			"booking_time": ["<", cutoff],
+			"docstatus": ["!=", 2],
+		},
+		fields=["name", "show", "number_of_seats"],
+	)
+
+	for booking in expired_bookings:
+		frappe.db.set_value("Ticket Booking", booking.name, "booking_status", "Expired", update_modified=False)
+
+		if booking.show and booking.number_of_seats:
+			update_show_seat_counts(booking.show, -booking.number_of_seats)
+
+	if expired_bookings:
+		frappe.db.commit()
+		frappe.logger("movie_tickets").info(f"Auto-expired {len(expired_bookings)} unpaid bookings")
+
+
+def send_booking_received_email(doc, method):
+	if not doc.customer_email:
+		return
+
+	config = get_booking_configuration()
+	expiry_minutes = config.booking_expiry_minutes or 15
+
+	message = f"""
+	<p>Dear {doc.customer_name or "Customer"},</p>
+	<p>Your booking <b>{doc.name}</b> for <b>{doc.movie_title}</b> has been received.</p>
+	<p>Please complete payment within <b>{expiry_minutes} minutes</b> to confirm your booking.</p>
+	<p><b>Show:</b> {formatdate(doc.show_date, "d MMM yyyy")} at {format_time(doc.start_time, "hh:mm a")}<br>
+	<b>Theater:</b> {doc.theater or ""}<br>
+	<b>Seats:</b> {doc.number_of_seats}</p>
+	<p>Thank you!</p>
+	"""
+
+	frappe.sendmail(
+		recipients=[doc.customer_email],
+		subject=f"Booking Received - {doc.name}",
+		message=message,
+		reference_doctype="Ticket Booking",
+		reference_name=doc.name,
+		now=True,
+	)
+
+
+def send_booking_confirmation_email(doc, method):
+	# Always generate QR on submit so it's available for the print format
+	qr_file_url, qr_content = generate_and_attach_qr(doc)
+
+	if not doc.customer_email:
+		return
+	seat_labels = ", ".join([s.seat_label for s in doc.seats]) if doc.seats else ""
+
+	qr_filename = f"{doc.name}-qr.png"
+	qr_html = ""
+	inline_images = []
+	if qr_content:
+		qr_html = f"""
+		<div style="margin: 16px 0; text-align: center;">
+			<p style="font-weight: 600;">Show this QR code at the entrance:</p>
+			<img embed="{qr_filename}" alt="Booking QR Code" style="width: 200px; height: 200px;">
+		</div>
+		"""
+		inline_images = [{"filename": qr_filename, "filecontent": qr_content}]
+
+	message = f"""
+	<p>Dear {doc.customer_name or "Customer"},</p>
+	<p>Your booking <b>{doc.name}</b> is confirmed! Here are your details:</p>
+	<table style="border-collapse: collapse; margin: 16px 0;">
+		<tr><td style="padding: 6px 12px; font-weight: 600;">Movie</td><td style="padding: 6px 12px;">{doc.movie_title}</td></tr>
+		<tr><td style="padding: 6px 12px; font-weight: 600;">Date</td><td style="padding: 6px 12px;">{formatdate(doc.show_date, "d MMM yyyy")}</td></tr>
+		<tr><td style="padding: 6px 12px; font-weight: 600;">Time</td><td style="padding: 6px 12px;">{format_time(doc.start_time, "hh:mm a")}</td></tr>
+		<tr><td style="padding: 6px 12px; font-weight: 600;">Theater</td><td style="padding: 6px 12px;">{doc.theater or ""}</td></tr>
+		<tr><td style="padding: 6px 12px; font-weight: 600;">Screen</td><td style="padding: 6px 12px;">{doc.screen or ""}</td></tr>
+		<tr><td style="padding: 6px 12px; font-weight: 600;">Seats</td><td style="padding: 6px 12px;">{seat_labels}</td></tr>
+		<tr><td style="padding: 6px 12px; font-weight: 600;">Amount</td><td style="padding: 6px 12px;">{fmt_money(doc.total_amount, currency="INR")}</td></tr>
+	</table>
+	{qr_html}
+	<p>Enjoy the movie!</p>
+	"""
+
+	frappe.sendmail(
+		recipients=[doc.customer_email],
+		subject=f"Booking Confirmed - {doc.name}",
+		message=message,
+		reference_doctype="Ticket Booking",
+		reference_name=doc.name,
+		inline_images=inline_images,
+		now=True,
+	)
+
+
+def generate_and_attach_qr(doc):
+	"""Generate a QR code containing booking details, attach to record, return (file_url, raw_bytes)."""
+	from frappe.utils.file_manager import save_file
+
+	seat_labels = ", ".join([s.seat_label for s in doc.seats]) if doc.seats else ""
+
+	qr_data = json.dumps({
+		"booking": doc.name,
+		"movie": doc.movie_title,
+		"show_date": str(doc.show_date),
+		"start_time": str(doc.start_time),
+		"theater": doc.theater,
+		"screen": doc.screen,
+		"seats": seat_labels,
+		"amount": float(doc.total_amount or 0),
+		"status": doc.booking_status,
+	})
+
+	qr = qrcode.QRCode(box_size=10, border=4)
+	qr.add_data(qr_data)
+	qr.make(fit=True)
+	img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+	buffer = io.BytesIO()
+	img.save(buffer, format="PNG")
+	content = buffer.getvalue()
+
+	filename = f"{doc.name}-qr.png"
+
+	# Remove old QR attachment if re-generating
+	existing = frappe.get_all(
+		"File",
+		filters={
+			"attached_to_doctype": "Ticket Booking",
+			"attached_to_name": doc.name,
+			"file_name": ["like", f"{doc.name}-qr%"],
+		},
+		pluck="name",
+	)
+	for f in existing:
+		frappe.delete_doc("File", f, ignore_permissions=True)
+
+	file_doc = save_file(filename, content, "Ticket Booking", doc.name, is_private=0)
+	return file_doc.file_url, content

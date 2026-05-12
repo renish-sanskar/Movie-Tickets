@@ -50,7 +50,7 @@
 							{{ show.available_seats }} / {{ show.total_seats }} seats
 						</div>
 						{% if show.available_seats > 0 %}
-						<a href="/app/ticket-booking/new?show={{ show.name }}" class="btn btn-primary btn-sm btn-book">
+						<a href="/select-seats?show={{ show.name }}" class="btn btn-primary btn-sm btn-book">
 							Book Now
 						</a>
 						{% else %}
