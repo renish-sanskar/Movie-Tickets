@@ -34,7 +34,6 @@
   {
    "fieldname": "movie",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Movie",
    "options": "Movie",
    "reqd": 1
@@ -59,7 +58,6 @@
    "fetch_from": "screen.theater",
    "fieldname": "theater",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Theater",
    "options": "Theater",
    "read_only": 1,
@@ -82,7 +80,6 @@
   {
    "fieldname": "end_time",
    "fieldtype": "Time",
-   "in_list_view": 1,
    "label": "End Time",
    "read_only": 1
   },
@@ -96,6 +93,7 @@
   {
    "fieldname": "available_seats",
    "fieldtype": "Int",
+    "in_list_view": 1,
    "label": "Available Seats",
    "read_only": 1
   },
@@ -117,7 +115,6 @@
   {
    "fieldname": "ticket_price",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Ticket Price",
    "reqd": 1
   }
@@ -140,12 +137,35 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Cinema Manager",
+   "select": 1,
    "share": 1,
    "write": 1
   },
   {
    "read": 1,
-   "role": "All"
+   "report": 1,
+   "role": "Box Office Staff",
+   "select": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All",
+   "select": 1
   }
  ],
  "sort_field": "creation",

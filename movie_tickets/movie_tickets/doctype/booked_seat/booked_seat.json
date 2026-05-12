@@ -24,7 +24,7 @@
    "in_list_view": 1,
    "label": "Row Letter",
    "reqd": 1
-  },
+  }, 
   {
    "fieldname": "seat_number",
    "fieldtype": "Int",

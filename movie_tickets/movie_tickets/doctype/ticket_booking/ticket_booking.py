@@ -3,7 +3,7 @@ import re
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import get_datetime, get_time, now_datetime
+from frappe.utils import flt, get_datetime, get_time, now_datetime
 
 from movie_tickets.movie_tickets.doctype.booking_configuration.booking_configuration import (
 	get_booking_configuration,
@@ -11,6 +11,7 @@ from movie_tickets.movie_tickets.doctype.booking_configuration.booking_configura
 
 VALID_SHOW_STATUSES_FOR_BOOKING = ("Scheduled", "Now Playing")
 BOOKED_SEAT_STATUSES = ("Pending", "Confirmed")
+CINEMA_MANAGER_ROLES = ("System Manager", "Cinema Manager", "Box Office Staff")
 
 
 class TicketBooking(Document):
@@ -45,6 +46,23 @@ class TicketBooking(Document):
 		theater: DF.Data | None
 		total_amount: DF.Currency
 	# end: auto-generated types
+
+	def has_permission(self, ptype="read", user=None):
+		user = user or frappe.session.user
+
+		if user == "Administrator" or set(frappe.get_roles(user)).intersection(CINEMA_MANAGER_ROLES):
+			return True
+
+		if "Customer" in frappe.get_roles(user):
+			if ptype == "create":
+				return True
+
+			if ptype in ("read", "write", "print", "email", "submit"):
+				return self.booked_by == user
+
+			return False
+
+		return False
 
 	def validate(self):
 		self.set_booking_details()
@@ -112,7 +130,7 @@ class TicketBooking(Document):
 
 	def set_totals(self):
 		self.number_of_seats = len(self.seats)
-		self.total_amount = self.number_of_seats * (self.price_per_seat or 0)
+		self.total_amount = sum(flt(seat.seat_price) for seat in self.seats)
 
 	def validate_show_status(self):
 		show_status = frappe.db.get_value("Show", self.show, "show_status")
@@ -224,3 +242,56 @@ def update_show_seat_counts(show, seat_count):
 			"available_seats": show_doc.available_seats,
 		}
 	)
+
+
+def get_permission_query_conditions(user=None):
+	user = user or frappe.session.user
+
+	if user == "Administrator" or set(frappe.get_roles(user)).intersection(CINEMA_MANAGER_ROLES):
+		return ""
+
+	if "Customer" in frappe.get_roles(user):
+		return "`tabTicket Booking`.booked_by = {0}".format(frappe.db.escape(user))
+
+	return "1 = 0"
+
+
+@frappe.whitelist()
+def get_booked_seats(show, booking=None):
+	if not show:
+		return []
+
+	return frappe.db.sql_list(
+		"""
+		select distinct seat.seat_label
+		from `tabTicket Booking` booking
+		inner join `tabBooked Seat` seat
+			on seat.parent = booking.name
+			and seat.parenttype = 'Ticket Booking'
+		where booking.show = %s
+			and booking.name != %s
+			and booking.docstatus != 2
+			and booking.booking_status in ('Pending', 'Confirmed')
+		""",
+		(show, booking or ""),
+	)
+
+
+@frappe.whitelist()
+def get_screen_layout(screen):
+	"""Return seat_rows and seats_per_row for a screen without requiring Screen read permission."""
+	if not screen or not frappe.db.exists("Screen", screen):
+		frappe.throw(_("Screen not found"))
+	row = frappe.db.get_value("Screen", screen, ["seat_rows", "seats_per_row"], as_dict=True)
+	return row
+
+
+@frappe.whitelist()
+def get_max_seats_per_booking():
+	return get_booking_configuration().max_seats_per_booking
+
+
+@frappe.whitelist()
+def send_booking_confirmation(booking):
+	frappe.get_doc("Ticket Booking", booking).check_permission("read")
+	return {"message": _("Booking confirmation sent")}

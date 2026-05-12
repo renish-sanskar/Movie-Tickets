@@ -2,7 +2,7 @@ import frappe
 from frappe.tests import IntegrationTestCase
 
 
-TEST_THEATER = "PVR IMAX - Ahmedabad"
+TEST_THEATER = "Screen Test Cinema - Ahmedabad"
 
 
 class TestScreen(IntegrationTestCase):
@@ -10,7 +10,7 @@ class TestScreen(IntegrationTestCase):
 		if not frappe.db.exists("Theater", TEST_THEATER):
 			frappe.get_doc(
 				doctype="Theater",
-				theater_name="PVR IMAX",
+				theater_name="Screen Test Cinema",
 				city="Ahmedabad",
 				address="CG Road, Ahmedabad",
 			).insert()
@@ -22,7 +22,7 @@ class TestScreen(IntegrationTestCase):
 	def test_screen_name_uses_theater_and_screen_name(self):
 		screen = make_screen().insert()
 
-		self.assertEqual(screen.name, "PVR IMAX - Ahmedabad-Screen 1")
+		self.assertEqual(screen.name, "Screen Test Cinema - Ahmedabad-Screen 1")
 
 	def test_total_seats_must_match_rows_times_seats_per_row(self):
 		screen = make_screen(total_seats=149)

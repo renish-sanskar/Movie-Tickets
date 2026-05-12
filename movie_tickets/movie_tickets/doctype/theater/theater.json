@@ -2,7 +2,7 @@
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
- "creation": "2026-05-11 00:00:00.000000",
+ "creation": "2026-05-12 10:53:14.829086",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -55,7 +55,7 @@
   }
  ],
  "links": [],
- "modified": "2026-05-11 00:00:00.000000",
+ "modified": "2026-05-12 10:55:57.476641",
  "modified_by": "Administrator",
  "module": "Movie Tickets",
  "name": "Theater",
@@ -72,14 +72,37 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Cinema Manager",
+   "select": 1,
    "share": 1,
    "write": 1
   },
   {
    "read": 1,
-   "role": "All"
+   "report": 1,
+   "role": "Box Office Staff",
+   "select": 1
+  },
+  {
+   "read": 1,
+   "role": "All",
+   "select": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],

@@ -35,7 +35,7 @@ class TestTicketBooking(IntegrationTestCase):
 		self.assertEqual(booking.number_of_seats, 2)
 		self.assertEqual(booking.seats[0].seat_price, 250)
 		self.assertEqual(booking.seats[1].seat_price, 300)
-		self.assertEqual(booking.total_amount, 500)
+		self.assertEqual(booking.total_amount, 550)
 
 	def test_zero_seat_price_defaults_from_show_ticket_price(self):
 		booking = make_booking()
