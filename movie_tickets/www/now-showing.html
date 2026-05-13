@@ -1,0 +1,241 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="now-showing-page">
+	<div class="filter-bar">
+		<form method="GET" action="/now-showing" class="d-flex flex-wrap gap-3 align-items-end">
+			<div class="filter-group">
+				<label class="form-label">Genre</label>
+				<select name="genre" class="form-select form-select-sm">
+					<option value="">All Genres</option>
+					{% for g in genres %}
+					<option value="{{ g }}" {{ "selected" if selected_genre == g else "" }}>{{ g }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="filter-group">
+				<label class="form-label">Language</label>
+				<select name="language" class="form-select form-select-sm">
+					<option value="">All Languages</option>
+					{% for l in languages %}
+					<option value="{{ l }}" {{ "selected" if selected_language == l else "" }}>{{ l }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="filter-group">
+				<button type="submit" class="btn btn-primary btn-sm">Apply</button>
+				<a href="/now-showing" class="btn btn-default btn-sm">Clear</a>
+			</div>
+		</form>
+	</div>
+
+	{% if movies %}
+	<div class="movie-grid">
+		{% for movie in movies %}
+		<a href="/movie-shows?movie={{ movie.name }}" class="movie-card">
+			<div class="movie-poster">
+				{% if movie.poster %}
+				<img src="{{ movie.poster }}" alt="{{ movie.title }}" loading="lazy">
+				{% else %}
+				<div class="no-poster">
+					<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+					<span>No Poster</span>
+				</div>
+				{% endif %}
+			</div>
+			<div class="movie-info">
+				<h5 class="movie-title">{{ movie.title }}</h5>
+				<div class="movie-meta">
+					<span class="badge-rating">{{ movie.rating }}</span>
+					<span class="dot-sep">&middot;</span>
+					<span>{{ movie.duration_minutes }} min</span>
+				</div>
+				<div class="movie-tags">
+					<span class="tag">{{ movie.genre }}</span>
+					<span class="tag">{{ movie.language }}</span>
+				</div>
+			</div>
+		</a>
+		{% endfor %}
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="text-muted mb-3">
+			<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+		</div>
+		<h4>No movies currently showing</h4>
+		<p class="text-muted">Check back soon for new releases!</p>
+	</div>
+	{% endif %}
+</div>
+
+<style>
+.now-showing-page {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 2rem 1.5rem;
+}
+
+.filter-bar {
+	margin-bottom: 2rem;
+	padding: 1.25rem 1.5rem;
+	background: var(--card-bg, #fff);
+	border: 1px solid var(--border-color, #e2e8f0);
+	border-radius: var(--border-radius-lg, 8px);
+}
+
+.filter-group label {
+	font-size: var(--text-xs, 0.75rem);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+	margin-bottom: 0.375rem;
+	display: block;
+}
+
+.filter-group {
+	margin-right: 1rem;
+}
+
+.filter-group select {
+	min-width: 180px;
+}
+
+.movie-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 1.5rem;
+}
+
+.movie-card {
+	display: flex;
+	flex-direction: column;
+	background: var(--card-bg, #fff);
+	border: 1px solid var(--border-color, #e2e8f0);
+	border-radius: var(--border-radius-lg, 8px);
+	overflow: hidden;
+	text-decoration: none;
+	color: inherit;
+	transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.movie-card:hover {
+	text-decoration: none;
+	color: inherit;
+	box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.1));
+	transform: translateY(-2px);
+}
+
+.movie-poster {
+	position: relative;
+	width: 100%;
+	padding-top: 150%; /* 2:3 aspect ratio */
+	background: var(--bg-light-gray, #f5f5f5);
+	overflow: hidden;
+}
+
+.movie-poster img {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.movie-poster .no-poster {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	color: var(--text-muted);
+}
+
+.movie-info {
+	padding: 0.875rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+}
+
+.movie-title {
+	font-size: var(--text-base, 1rem);
+	font-weight: 600;
+	margin: 0;
+	line-height: 1.3;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.movie-meta {
+	font-size: var(--text-sm, 0.875rem);
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+}
+
+.badge-rating {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.1rem 0.4rem;
+	font-size: 0.7rem;
+	font-weight: 700;
+	border: 1.5px solid var(--text-muted);
+	border-radius: 3px;
+	line-height: 1;
+}
+
+.movie-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.375rem;
+	margin-top: 0.125rem;
+}
+
+.movie-tags .tag {
+	font-size: var(--text-xs, 0.75rem);
+	padding: 0.15rem 0.5rem;
+	background: var(--bg-light-gray, #f0f0f0);
+	border-radius: var(--border-radius, 4px);
+	color: var(--text-muted);
+}
+
+.empty-state svg {
+	opacity: 0.4;
+}
+
+@media (max-width: 576px) {
+	.movie-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.75rem;
+	}
+
+	.movie-info {
+		padding: 0.625rem 0.75rem;
+	}
+
+	.movie-title {
+		font-size: var(--text-sm, 0.875rem);
+	}
+
+	.filter-bar form {
+		flex-direction: column;
+	}
+
+	.filter-group select {
+		min-width: 100%;
+	}
+}
+</style>
+{% endblock %}

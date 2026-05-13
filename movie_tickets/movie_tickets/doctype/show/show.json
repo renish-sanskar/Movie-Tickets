@@ -1,0 +1,175 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-05-11 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "movie",
+  "movie_title",
+  "screen",
+  "theater",
+  "show_date",
+  "start_time",
+  "end_time",
+  "total_seats",
+  "available_seats",
+  "booked_seats",
+  "show_status",
+  "ticket_price"
+ ],
+ "fields": [
+  {
+   "default": "SHW-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "SHW-.YYYY.-.#####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "movie",
+   "fieldtype": "Link",
+   "label": "Movie",
+   "options": "Movie",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "movie.title",
+   "fieldname": "movie_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Movie Title",
+   "read_only": 1
+  },
+  {
+   "fieldname": "screen",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Screen",
+   "options": "Screen",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "screen.theater",
+   "fieldname": "theater",
+   "fieldtype": "Link",
+   "label": "Theater",
+   "options": "Theater",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "show_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Show Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Start Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "screen.total_seats",
+   "fieldname": "total_seats",
+   "fieldtype": "Int",
+   "label": "Total Seats",
+   "read_only": 1
+  },
+  {
+   "fieldname": "available_seats",
+   "fieldtype": "Int",
+    "in_list_view": 1,
+   "label": "Available Seats",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "booked_seats",
+   "fieldtype": "Int",
+   "label": "Booked Seats",
+   "read_only": 1
+  },
+  {
+   "default": "Scheduled",
+   "fieldname": "show_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Show Status",
+   "options": "Scheduled\nNow Playing\nCompleted\nCancelled"
+  },
+  {
+   "fieldname": "ticket_price",
+   "fieldtype": "Currency",
+   "label": "Ticket Price",
+   "reqd": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-05-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Movie Tickets",
+ "name": "Show",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Cinema Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Box Office Staff",
+   "select": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All",
+   "select": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

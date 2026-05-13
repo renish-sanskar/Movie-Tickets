@@ -1,0 +1,84 @@
+/*
+ * Movie Tickets – Global Styles
+ * Loaded via app_include_css in hooks.py (available on every desk page).
+ */
+
+/* ── Booking Status Badge Colors ─────────────────────────────────────────── */
+
+.indicator-pill[data-indicator="Open"] {
+	--indicator-color: var(--yellow-500, #f59e0b);
+}
+
+.indicator-pill[data-indicator="Confirmed"] {
+	--indicator-color: var(--green-500, #22c55e);
+}
+
+.indicator-pill[data-indicator="Cancelled"] {
+	--indicator-color: var(--red-500, #ef4444);
+}
+
+.indicator-pill[data-indicator="Expired"] {
+	--indicator-color: var(--gray-500, #6b7280);
+}
+
+/* ── "Houseful" Pulsing Indicator ────────────────────────────────────────── */
+
+.houseful-badge {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 4px;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #fff;
+	background: var(--red-600, #dc2626);
+	animation: houseful-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes houseful-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50%      { opacity: 0.75; transform: scale(1.05); }
+}
+
+/* ── Seat Availability Color Coding ──────────────────────────────────────── */
+
+.seat {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	margin: 2px;
+	border-radius: 4px;
+	font-size: var(--text-xs);
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s, transform 0.1s;
+}
+
+.seat--available {
+	background: var(--green-100, #dcfce7);
+	color: var(--green-800, #166534);
+	border: 1px solid var(--green-300, #86efac);
+}
+
+.seat--available:hover {
+	background: var(--green-200, #bbf7d0);
+	transform: scale(1.1);
+}
+
+.seat--booked {
+	background: var(--red-100, #fee2e2);
+	color: var(--red-400, #f87171);
+	border: 1px solid var(--red-200, #fecaca);
+	cursor: not-allowed;
+	opacity: 0.7;
+}
+
+.seat--selected {
+	background: var(--blue-500, #3b82f6);
+	color: #fff;
+	border: 1px solid var(--blue-600, #2563eb);
+	transform: scale(1.1);
+}
